@@ -71,7 +71,7 @@ def format_time_with_font(time_str, style):
     font_dict = FONTS_MAP.get(style, FONTS_MAP["2"])
     return "".join(font_dict.get(char, char) for char in time_str)
 
-# ==================== دالة تشغيل السورس ====================
+# ==================== دالة تشغيل السورس وضبط توقيت بغداد بدقة ====================
 async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     user_app = Client(
         client_session_name,
@@ -86,6 +86,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
+                # ضبط الوقت حصرياً بتوقيت بغداد (UTC + 3)
                 now = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
@@ -378,7 +379,6 @@ async def list_subscribers(client, message):
         else:
             remaining_str = "منتهي الصلاحية"
 
-        # محاولة جلب معلومات المستخدم من التليجرام
         try:
             user_obj = await client.get_users(int(uid_str))
             name = user_obj.first_name or "بدون"
@@ -386,9 +386,6 @@ async def list_subscribers(client, message):
         except:
             name = "مستخدم"
             username = "غير معروف"
-
-        # حساب المدة الكلية للاشتراك بالايام بناءً على المتبقي ووقت الانتهاء التقريبي
-        total_days_approx = round((expire_time - (expire_time - remaining_seconds)) / 86400, 1) # أو عرض بصيغة واضحة
         
         text += (
             f"{i}. الاسم: {name}\n"
@@ -422,7 +419,6 @@ async def remove_subscriber(client, message):
             pass
             
     if target_uid:
-        # إيقاف السورس النشط إن وجد
         if int(target_uid) in user_active_sources:
             try:
                 await user_active_sources[int(target_uid)]["app"].stop()
