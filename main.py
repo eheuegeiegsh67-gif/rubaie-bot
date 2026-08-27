@@ -322,18 +322,20 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         await asyncio.sleep(2)
         await m.delete()
 
-    @user_app.on_message(filters.me & filters.text)
+        @user_app.on_message(filters.me & filters.text)
     async def fonts_handler(c, m):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now_str = get_baghdad_time().strftime("%I:%M")
-            clock_text = format_time_with_font(now_str, txt)
+            # حساب الوقت الحقيقي بدون أي نقص أو تأخير
+            baghdad_now = datetime.now(timezone.utc) + timedelta(hours=3)
+            now = baghdad_now.strftime("%I:%M")
+            clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
                 await m.edit_text(f"🟢 **تم تغيير خط الساعة وضبط الوقت حسب بغداد: ({clock_text})**")
-            except:
-                pass
+            except Exception as e:
+                print(f"خطأ بتحديث الخط: {e}")
 
     try:
         await user_app.start()
