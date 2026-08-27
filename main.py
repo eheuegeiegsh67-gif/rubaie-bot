@@ -2,7 +2,7 @@ import asyncio
 import os
 import json
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotParticipant
@@ -86,8 +86,8 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
-                # ضبط الوقت على توقيت بغداد متجاوزاً فرق السيرفر
-                now = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M")
+                # استخدام الوقت المحلي مباشرة لضمان مطابقة ساعة الجهاز/السيرفر المضبوطة
+                now = datetime.now().strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
                     await user_app.update_profile(last_name=f"{clock_text}")
@@ -116,7 +116,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     @user_app.on_message(filters.me & filters.command(["الاوامر", "الأوامر", "م"], prefixes="."))
     async def main_menu(c, m):
         await m.edit_text(
-            "⚡️ **قائمة اوامر سورس الربيعي (توقيت بغداد المضبوط)** ✨\n\n"
+            "⚡️ **قائمة اوامر سورس الربيعي المضبوطة** ✨\n\n"
             "🕑 الوقت واللقب: `.م1` ⭐\n"
             "🎁 التخزين السحابي: `.م2` 🎁\n"
             "🗣 النشر (نسخ تلقائي): `.م3` 🎙\n"
@@ -156,7 +156,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             return
 
         stop_posting_flags[user_tg_id] = False
-        start_time_str = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%Y-%m-%d | %I:%M:%S %p")
+        start_time_str = datetime.now().strftime("%Y-%m-%d | %I:%M:%S %p")
         
         await m.edit_text("🔄 **جاري بدء النشر التلقائي في المجموعات...**")
         
@@ -181,7 +181,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                 except Exception as e:
                     fail_count += 1
 
-        end_time_str = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M:%S %p")
+        end_time_str = datetime.now().strftime("%I:%M:%S %p")
         
         report_text = (
             f"📊 **تقرير عملية النشر التلقائي:**\n\n"
@@ -324,11 +324,11 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M")
+            now = datetime.now().strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
-                await m.edit_text(f"🟢 **تم تغيير خط الساعة وضبط الوقت حسب بغداد: ({clock_text})**")
+                await m.edit_text(f"🟢 **تم تغيير خط الساعة وضبط الوقت: ({clock_text})**")
             except:
                 pass
 
@@ -398,9 +398,14 @@ async def start_bot(client, message):
         keyboard_buttons = [[InlineKeyboardButton(f"📢 اشترك في @{ch}", url=f"https://t.me/{ch}")] for ch in forced_channels]
         keyboard_buttons.append([InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="check_sub")])
         return await message.reply_text("⚠️ **عذراً، يجب عليك الاشتراك في القنوات أولاً!**", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
-
+        
     temp_users[user_id] = {"step": "waiting_code"}
-    await message.reply_text(f"👋 أهلاً بك في بوت تنصيب **سورس الربيعي** ⚡️\n\n🔑 أرسل **كود الاشتراك** الخاص بك الآن:")
+    await message.reply_text(
+        "أهلاً بك عزيزي في بوت تنصيب سورس الربيعي برو ⚡\n\n"
+        "🔑 **الخطوة الأولى:**\n"
+        "يرجى إرسال كود الاشتراك الخاص بك لتفعيل التنصيب:\n\n"
+        f"[ المطور: @{ADMIN_USERNAME} ]"
+    )
 
 @bot_app.on_callback_query(filters.regex("check_sub"))
 async def check_sub_callback(client, cq):
@@ -482,22 +487,35 @@ async def handle_user_input(client, message):
             await finalize_success(message, user_data["client"], user_data)
         except Exception as e:
             await message.reply_text(f"❌ كلمة المرور خطأ: `{e}`")
-            try: await user_data["client"].disconnect()
-            except: pass
+            try:
+                await user_data["client"].disconnect()
+            except:
+                pass
             del temp_users[user_id]
+
 
 async def finalize_success(message, user_client, user_data):
     session_name = user_client.name
-    await user_client.disconnect()
-    expire_time = time.time() + (user_data.get("days", 1) * 86400)
+    days_count = user_data.get("days", 1)
     
+    expire_time = time.time() + (days_count * 86400)
+
     user_sessions[str(message.from_user.id)] = {"session_name": session_name, "expire_time": expire_time}
     db["user_sessions"] = user_sessions
     save_database(db)
 
+    await message.reply_text("🎉 **تم تسجيل الدخول وحفظ الجلسة بنجاح!**")
+    await message.reply_text("🚀 **جاري تشغيل سورس الربيعي بكافة الأوامر على حسابك الآن...**")
+
     asyncio.create_task(start_user_source(session_name, expire_time, message.from_user.id))
     if message.from_user.id in temp_users: del temp_users[message.from_user.id]
-    await message.reply_text(f"✅ **تم تنصيب سورس الربيعي بنجاح وتفعيل توقيت بغداد!** 🚀")
+    
+    await message.reply_text(
+        f"✅ **تم تنصيب وتشغيل سورس الربيعي بنجاح!**\n"
+        f"⏳ **اشتراكك فعال لمدة {days_count} أيام.**\n\n"
+        f"تستطيع الآن استخدام الأوامر مثل `.الاوامر` أو `.م` في أي مجموعة.\n\n"
+        f"[ المطور: @{ADMIN_USERNAME} ]"
+    )
 
 async def restore_saved_sessions():
     current_time = time.time()
