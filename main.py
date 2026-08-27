@@ -2,7 +2,7 @@ import asyncio
 import os
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotParticipant
@@ -16,9 +16,12 @@ API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 ADMIN_ID = 7989509412
 ADMIN_USERNAME = "Al_Rubaie15"
 
+# تحديد التوقيت المحلي لمدينة بغداد (العراق) بدقة تامة (UTC+3)
+BAGHDAD_TZ = timezone(timedelta(hours=3))
+
 # بوت التحكم الرئيسي
 bot_app = Client(
-    "Rubaie_Maker_Bot_New",
+    "Rubaie_Maker_Bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
@@ -34,7 +37,7 @@ def load_database():
                 return json.load(f)
         except:
             pass
-    return {"subscriptions": {}, "user_sessions": {}, "forced_channels": ["Al_Rubaie02"]}
+    return {"subscriptions": {}, "user_sessions": {}, "forced_channel": None}
 
 def save_database(data):
     try:
@@ -46,7 +49,7 @@ def save_database(data):
 db = load_database()
 active_subscriptions = db.get("subscriptions", {})
 user_sessions = db.get("user_sessions", {})
-forced_channels = db.get("forced_channels", ["Al_Rubaie02"])
+forced_channel = db.get("forced_channel", None)
 
 temp_users = {}       
 user_active_sources = {}  
@@ -54,6 +57,7 @@ muted_users = set()
 original_profile = {}     
 sleep_mode = [False]      
 warn_counts = {}          
+last_warn_msgs = {}   # لتخزين كائن آخر رسالة تحذير أرسلها البوت لكل مستخدم حتى يتم حذفها
 stop_posting_flags = {}   
 
 FONTS_MAP = {
@@ -71,7 +75,8 @@ def format_time_with_font(time_str, style):
     font_dict = FONTS_MAP.get(style, FONTS_MAP["2"])
     return "".join(font_dict.get(char, char) for char in time_str)
 
-# ==================== دالة تشغيل السورس ووقت بغداد المضبوط ====================
+
+# ==================== دالة تشغيل السورس بكافة مميزاته ====================
 async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     user_app = Client(
         client_session_name,
@@ -86,8 +91,8 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
-                # استخدام الوقت المحلي مباشرة لضمان مطابقة ساعة الجهاز/السيرفر المضبوطة
-                now = datetime.now().strftime("%I:%M")
+                # ربط الساعة بتوقيت بغداد (العراق) حصراً
+                now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
                     await user_app.update_profile(last_name=f"{clock_text}")
@@ -99,6 +104,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     async def monitor_expiration():
         while is_clock_running[0]:
             if time.time() >= expire_timestamp:
+                print(f"انقضاء الوقت للمستخدم: {user_tg_id}")
                 try:
                     await user_app.stop()
                 except:
@@ -113,13 +119,14 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                 break
             await asyncio.sleep(60)
 
+    # ==================== القائمة الرئيسة ====================
     @user_app.on_message(filters.me & filters.command(["الاوامر", "الأوامر", "م"], prefixes="."))
     async def main_menu(c, m):
         await m.edit_text(
-            "⚡️ **قائمة اوامر سورس الربيعي المضبوطة** ✨\n\n"
+            "⚡️ **قائمة اوامر سورس الربيعي (توقيت العراق)** ✨\n\n"
             "🕑 الوقت واللقب: `.م1` ⭐\n"
             "🎁 التخزين السحابي: `.م2` 🎁\n"
-            "🗣 النشر (نسخ تلقائي): `.م3` 🎙\n"
+            "🗣 النشر والتوجيه: `.م3` 🎙\n"
             "✈ أوامر الحفظ والنسخ: `.م4` ✈\n"
             "😴 وضع النوم والتحذيرات: `.م10` 🌙\n"
             "✨ نظام الكتم (خاص وكروبات): `.كتم` / `.سماح` ✨\n"
@@ -131,7 +138,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
 
     @user_app.on_message(filters.me & filters.command(["م1"], prefixes="."))
     async def menu_1(c, m):
-        await m.edit_text("⭐ **أوامر الوقت واللقب (.م1):**\n\n• أرسل رقم من 1 إلى 8 لتغيير خط الساعة.")
+        await m.edit_text("⭐ **أوامر الوقت واللقب (.م1):**\n\n• `.اسم وقتي` لتشغيل الساعة (حسب توقيت العراق).\n• أرسل رقم من 1 إلى 8 لتغيير خط الساعة.")
 
     @user_app.on_message(filters.me & filters.command(["م2"], prefixes="."))
     async def menu_2(c, m):
@@ -139,7 +146,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
 
     @user_app.on_message(filters.me & filters.command(["م3"], prefixes="."))
     async def menu_3(c, m):
-        await m.edit_text("🎙 **أوامر النشر التلقائي (.م3):**\n\n• رد بـ `.نشر` لنشر النص مباشرة في كل المجموعات.\n• `.إيقاف_نشر` لإيقاف النشر.")
+        await m.edit_text("🎙 **أوامر النشر والتوجيه (.م3):**\n\n• رد بـ `.نشر` أو `.توجيه` لنشرها بكل المجموعات.\n• `.إيقاف_نشر` لإيقاف عملية النشر الحالية.")
 
     @user_app.on_message(filters.me & filters.command(["م4"], prefixes="."))
     async def menu_4(c, m):
@@ -147,51 +154,36 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
 
     @user_app.on_message(filters.me & filters.command(["م10"], prefixes="."))
     async def menu_10(c, m):
-        await m.edit_text("🌙 **أوامر وضع النوم والتحذيرات (.م10):**\n\n• `.نوم` لتفعيل وضع النوم.\n• `.كاعد` لإطفاء وضع النوم.")
+        await m.edit_text("🌙 **أوامر وضع النوم والتحذيرات (.م10):**\n\n• `.نوم` ➔ لتفعيل وضع النوم والتحذيرات التلقائية (حذف القديم وإرسال جديد حتى يصل للـ 5 ثم يكتمه).\n• `.كاعد` أو `.صاحي` ➔ لإطفاء وضع النوم.")
 
-    @user_app.on_message(filters.me & filters.command(["نشر"], prefixes="."))
+    # ==================== الأوامر والوظائف ====================
+
+    @user_app.on_message(filters.me & filters.command(["نشر", "توجيه"], prefixes="."))
     async def auto_post_cmd(c, m):
         if not m.reply_to_message:
             await m.edit_text("⚠️ **قم بالرد على الرسالة المراد نشرها في المجموعات!**")
             return
 
         stop_posting_flags[user_tg_id] = False
-        start_time_str = datetime.now().strftime("%Y-%m-%d | %I:%M:%S %p")
-        
-        await m.edit_text("🔄 **جاري بدء النشر التلقائي في المجموعات...**")
+        await m.edit_text("🔄 **جاري بدء النشر التلقائي في المجموعات...\n(لإيقافه في أي وقت اكتب: `.إيقاف_نشر`)**")
         
         success_count, fail_count = 0, 0
-        target_msg = m.reply_to_message
 
         async for dialog in c.get_dialogs():
             if stop_posting_flags.get(user_tg_id, False):
                 break
             if dialog.chat.type.value in ["group", "supergroup"]:
                 try:
-                    chat_id = dialog.chat.id
-                    if target_msg.text:
-                        await c.send_message(chat_id, target_msg.text)
-                    elif target_msg.caption:
-                        await target_msg.copy(chat_id)
-                    else:
-                        await target_msg.copy(chat_id)
-                        
+                    await m.reply_to_message.forward(dialog.chat.id)
                     success_count += 1
-                    await asyncio.sleep(2.5)
-                except Exception as e:
+                    await asyncio.sleep(2)
+                except:
                     fail_count += 1
 
-        end_time_str = datetime.now().strftime("%I:%M:%S %p")
-        
-        report_text = (
-            f"📊 **تقرير عملية النشر التلقائي:**\n\n"
-            f"• وقت البدء: `{start_time_str}`\n"
-            f"• وقت الانتهاء: `{end_time_str}`\n"
-            f"• عدد المجموعات المنشور لها: `{success_count}`\n"
-            f"• المتعذرة: `{fail_count}`\n\n"
-            f"[ المطور: @{ADMIN_USERNAME} ]"
-        )
-        await m.edit_text(report_text)
+        if stop_posting_flags.get(user_tg_id, False):
+            await m.edit_text(f"🛑 **تم إيقاف النشر التلقائي بنجاح!**\n• تم النشر في: `{success_count}` مجموعة.")
+        else:
+            await m.edit_text(f"✅ **تم الانتهاء من النشر التلقائي بنجاح!**\n• المنشور فيها: `{success_count}`\n• المتعذرة: `{fail_count}`")
 
     @user_app.on_message(filters.me & filters.command(["إيقاف_نشر", "ايقاف_النشر", "وقف_النشر"], prefixes="."))
     async def stop_posting_cmd(c, m):
@@ -202,19 +194,23 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     async def sleep_on(c, m):
         sleep_mode[0] = True
         warn_counts.clear()
-        await m.edit_text("🌙 **تم تفعيل وضع النوم والتحذيرات بنجاح!**")
+        last_warn_msgs.clear()
+        await m.edit_text("🌙 **تم تفعيل وضع النوم والتحذيرات بنجاح!**\nكل مراسلة ستتضمن تحديث التحذيرات (حذف القديم وإرسال جديد)، وعند وصوله 5 سيتم كتمه.")
 
     @user_app.on_message(filters.me & filters.command(["كاعد", "صاحي", "استيقظ"], prefixes="."))
     async def sleep_off(c, m):
         sleep_mode[0] = False
         warn_counts.clear()
+        last_warn_msgs.clear()
         await m.edit_text("☀️ **تم إطفاء وضع النوم وعودتك للوضع الطبيعي!**")
 
     @user_app.on_message(filters.incoming & filters.private & ~filters.me)
     async def auto_reply_sleep(c, m):
         if m.from_user and m.from_user.id in muted_users:
-            try: await m.delete(revoke=True)
-            except: pass
+            try:
+                await m.delete(revoke=True)
+            except:
+                pass
             m.stop_propagation()
             return
 
@@ -223,13 +219,27 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             warn_counts[user_id] = warn_counts.get(user_id, 0) + 1
             current_warns = warn_counts[user_id]
 
+            # حذف التحذير القديم إذا كان موجوداً لتجنب تراكم الرسائل
+            if user_id in last_warn_msgs:
+                try:
+                    await last_warn_msgs[user_id].delete()
+                except:
+                    pass
+
             if current_warns >= 5:
                 muted_users.add(user_id)
-                try: await m.reply("🚫 **تم كتمك تلقائياً لتجاوز الحد المسموح للإزعاج!**")
-                except: pass
+                if user_id in last_warn_msgs:
+                    del last_warn_msgs[user_id]
+                try:
+                    await m.reply("🚫 **لقد تجاوزت الحد المسموح من الرسائل (5/5) أثناء وضع النوم، تم كتمك تلقائياً!**")
+                except:
+                    pass
             else:
-                try: await m.reply(f"😴 **المستخدم نائم حالياً ({current_warns}/5).**")
-                except: pass
+                try:
+                    sent_msg = await m.reply(f"😴 **المستخدم في وضع النوم حالياً ({current_warns}/5). يرجى عدم الإزعاج!**")
+                    last_warn_msgs[user_id] = sent_msg
+                except:
+                    pass
 
     @user_app.on_message(filters.me & filters.command(["كتم"], prefixes="."))
     async def mute_user_cmd(c, m):
@@ -240,10 +250,15 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             uid = m.chat.id
 
         if uid:
+            me = await c.get_me()
+            if uid == me.id or uid == int(BOT_TOKEN.split(":")[0]):
+                await m.edit_text("⚠️ **لا يمكنك كتم نفسك أو بوت التنصيب!**")
+                return
+
             muted_users.add(uid)
-            await m.edit_text("✨ **تم كتم الشخص بنجاح!**")
+            await m.edit_text("✨ **تم كتم الشخص بنجاح (سيتم حذف رسائله في الخاص والكروبات التي تتواجد بها)!**")
         else:
-            await m.edit_text("⚠️ **قم بالرد على رسالة الشخص المراد كتمه.**")
+            await m.edit_text("⚠️ **قم بالرد على رسالة الشخص المراد كتمه في الكروب أو الخاص، أو اكتب الأمر في محادثته الخاصة.**")
 
     @user_app.on_message(filters.me & filters.command(["سماح"], prefixes="."))
     async def unmute_user_cmd(c, m):
@@ -255,16 +270,21 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
 
         if uid and uid in muted_users:
             muted_users.remove(uid)
-            if uid in warn_counts: del warn_counts[uid]
+            if uid in warn_counts:
+                del warn_counts[uid]
+            if uid in last_warn_msgs:
+                del last_warn_msgs[uid]
             await m.edit_text("✨ **تم إلغاء كتم الشخص بنجاح!**")
         else:
-            await m.edit_text("ℹ️ **المستخدم ليس في قائمة الكتم.**")
+            await m.edit_text("ℹ️ **المستخدم ليس في قائمة الكتم، أو لم تحدد الشخص بشكل صحيح.**")
 
     @user_app.on_message(filters.incoming & ~filters.me)
     async def check_muted_everywhere(c, m):
         if m.from_user and m.from_user.id in muted_users:
-            try: await m.delete(revoke=True)
-            except: pass
+            try:
+                await m.delete(revoke=True)
+            except:
+                pass
             m.stop_propagation()
 
     @user_app.on_message(filters.me & filters.command(["انتحال"], prefixes="."))
@@ -274,16 +294,18 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             me = await c.get_me()
             original_profile['first_name'] = me.first_name
             original_profile['bio'] = (await c.get_chat(me.id)).bio or ""
+            
             try:
                 target_chat = await c.get_chat(target.id)
-                await c.update_profile(first_name=target.first_name, bio=target_chat.bio or "")
+                target_bio = target_chat.bio or ""
+                await c.update_profile(first_name=target.first_name, bio=target_bio)
                 if target.photo:
                     photo = await c.download_media(target.photo.big_file_id)
                     await c.set_profile_photo(photo=photo)
                     os.remove(photo)
                 await m.edit_text("⚽️ **تم انتحال الحساب بنجاح!** 🎭")
             except Exception as e:
-                await m.edit_text(f"❌ حدث خطأ: {e}")
+                await m.edit_text(f"❌ حدث خطأ أثناء الانتحال: {e}")
         else:
             await m.edit_text("⚠️ **قم بالرد على الشخص المراد انتحاله.**")
 
@@ -294,14 +316,20 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                 await c.update_profile(first_name=original_profile['first_name'], bio=original_profile.get('bio', ''))
                 await m.edit_text("⚽️ **تمت إعادة حسابك لشخصيتك الأصلية بنجاح!** ✨")
             else:
-                await m.edit_text("ℹ️ لا توجد نسخة محفوظة سابقة.")
+                await m.edit_text("ℹ️ لا توجد نسخة محفوظة سابقة للاستعادة.")
         except Exception as e:
             await m.edit_text(f"❌ حدث خطأ: {e}")
 
     @user_app.on_message(filters.me & filters.command(["ايدي", "الإيدي"], prefixes="."))
     async def my_id_cmd(c, m):
         me = await c.get_me()
-        await m.edit_text(f"❄ **معلومات حسابك:**\n• الأيدي: `{me.id}`\n• المعرف: `@{me.username}`")
+        await m.edit_text(
+            f"❄ **معلومات حسابك الشخصي:**\n\n"
+            f"• الاسم: `{me.first_name}`\n"
+            f"• المعرف: `@{me.username}`\n"
+            f"• الأيدي (ID): `{me.id}`\n"
+            f"• المطور: `@{ADMIN_USERNAME}` ⚡️"
+        )
 
     @user_app.on_message(filters.me & filters.command(["تنضيف", "تنظيف"], prefixes="."))
     async def purge_msgs(c, m):
@@ -315,7 +343,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                     deleted += 1
                 except:
                     pass
-        await m.edit_text(f"🔥 **تم حذف ({deleted}) من رسائلك بنجاح!**")
+        await m.edit_text(f"🔥 **تم تنظيف وحذف ({deleted}) من رسائلك بنجاح!** 💯")
         await asyncio.sleep(3)
         await m.delete()
 
@@ -324,11 +352,11 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = datetime.now().strftime("%I:%M")
+            now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
-                await m.edit_text(f"🟢 **تم تغيير خط الساعة وضبط الوقت: ({clock_text})**")
+                await m.edit_text(f"🟢 **تم تغيير الخط إلى ({txt}) وضبط الساعة حسب توقيت العراق: ({clock_text})**")
             except:
                 pass
 
@@ -337,146 +365,183 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         asyncio.create_task(update_clock())
         asyncio.create_task(monitor_expiration())
         user_active_sources[user_tg_id] = {"app": user_app, "session": client_session_name}
+        print(f"✅ تم تشغيل سورس المستخدم بكافة الأوامر وتوقيت بغداد بنجاح: {client_session_name}")
     except Exception as e:
         print(f"❌ فشل تشغيل سورس المستخدم: {e}")
+
 
 # ==================== بوت التنصيب (رئيسي) ====================
 
 @bot_app.on_message(filters.command("code") & filters.private)
 async def create_subscription_code(client, message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id != ADMIN_ID:
+        return await message.reply_text("⛔️ هذا الأمر خاص بالمطور فقط!")
     args = message.text.split()
-    if len(args) < 3: return await message.reply_text("⚠️ استعمل: `/code [الكود] [الايام]`")
+    if len(args) < 3:
+        return await message.reply_text("⚠️ **خطأ بالاستخدام!**\nاكتب بالشكل التالي:\n`/code [الكود] [عدد الأيام]`\nمثال: `/code PRO2026 7`")
     code_text, days = args[1], int(args[2])
     active_subscriptions[code_text] = {"days": days, "used": False}
     db["subscriptions"] = active_subscriptions
     save_database(db)
-    await message.reply_text(f"✅ **تم إنشاء الكود:** `{code_text}` لمدة `{days} أيام`")
+    await message.reply_text(f"✅ **تم إنشاء وحفظ كود الاشتراك بنجاح!**\n\n• الكود: `{code_text}`\n• المدة: `{days} أيام`")
 
-@bot_app.on_message(filters.command("اضافه_قناة") & filters.private)
-async def add_forced_channel(client, message):
-    if message.from_user.id != ADMIN_ID: return
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2: return await message.reply_text("⚠️ اكتب المعرف: `/اضافه_قناة معرف_القناة`")
-    ch = args[1].strip().replace("@", "").replace("https://t.me/", "")
-    if ch not in forced_channels:
-        forced_channels.append(ch)
-        db["forced_channels"] = forced_channels
-        save_database(db)
-        await message.reply_text(f"✅ تمت إضافة `@{ch}` للاشتراك الإجباري.")
+@bot_app.on_message(filters.command("addch") & filters.private)
+async def set_forced_channel(client, message):
+    if message.from_user.id != ADMIN_ID:
+        return await message.reply_text("⛔️ هذا الأمر خاص بالمطور فقط!")
+    args = message.text.split()
+    global forced_channel
+    if len(args) < 2:
+        if forced_channel:
+            await message.reply_text(f"ℹ️ قناة الاشتراك الإجباري الحالية: `{forced_channel}`\n\nلإلغائها أرسل: `/delch` أو لتغييرها أرسل `/addch [المعرف]`")
+        else:
+            await message.reply_text("⚠️ **استخدم الأمر هكذا:**\n`/addch @ChannelUsername`")
+        return
+    
+    forced_channel = args[1].strip()
+    db["forced_channel"] = forced_channel
+    save_database(db)
+    await message.reply_text(f"✅ **تم تحديد قناة الاشتراك الإجباري بنجاح:**\n`{forced_channel}`")
 
-@bot_app.on_message(filters.command("حذف_قناة") & filters.private)
+@bot_app.on_message(filters.command("delch") & filters.private)
 async def remove_forced_channel(client, message):
-    if message.from_user.id != ADMIN_ID: return
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2: return await message.reply_text("⚠️ اكتب المعرف: `/حذف_قناة معرف_القناة`")
-    ch = args[1].strip().replace("@", "").replace("https://t.me/", "")
-    if ch in forced_channels:
-        forced_channels.remove(ch)
-        db["forced_channels"] = forced_channels
-        save_database(db)
-        await message.reply_text(f"🗑 تم حذف `@{ch}`.")
+    if message.from_user.id != ADMIN_ID:
+        return await message.reply_text("⛔️ هذا الأمر خاص بالمطور فقط!")
+    global forced_channel
+    forced_channel = None
+    db["forced_channel"] = None
+    save_database(db)
+    await message.reply_text("✅ **تم إلغاء وتعطيل قناة الاشتراك الإجباري بنجاح!**")
 
-async def check_all_subscriptions(client, user_id):
-    if user_id == ADMIN_ID: return True
-    if not forced_channels: return True
-    for ch in forced_channels:
-        try:
-            chat_obj = await client.get_chat(ch)
-            member = await client.get_chat_member(chat_obj.id, user_id)
-            if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-                return False
-        except Exception as e:
-            print(f"خطأ في فحص الاشتراك لقناة {ch}: {e}")
-            return False
-    return True
+async def check_subscription(client, user_id):
+    if user_id == ADMIN_ID:
+        return True
+    if not forced_channel:
+        return True
+    try:
+        member = await client.get_chat_member(forced_channel, user_id)
+        if member.status in [
+            ChatMemberStatus.OWNER, 
+            ChatMemberStatus.ADMINISTRATOR, 
+            ChatMemberStatus.MEMBER
+        ]:
+            return True
+    except UserNotParticipant:
+        return False
+    except Exception as e:
+        print(f"خطأ في التحقق من الاشتراك للقناة {forced_channel}: {e}")
+        return False  
+    return False
 
 @bot_app.on_message(filters.command("start") & filters.private)
 async def start_bot(client, message):
     user_id = message.from_user.id
-    if forced_channels and not await check_all_subscriptions(client, user_id):
-        keyboard_buttons = [[InlineKeyboardButton(f"📢 اشترك في @{ch}", url=f"https://t.me/{ch}")] for ch in forced_channels]
-        keyboard_buttons.append([InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="check_sub")])
-        return await message.reply_text("⚠️ **عذراً، يجب عليك الاشتراك في القنوات أولاً!**", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
-        
+    
+    if forced_channel:
+        is_subbed = await check_subscription(client, user_id)
+        if not is_subbed:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📢 اضغط هنا للاشتراك بالقناة", url=f"https://t.me/{forced_channel.replace('@', '')}")],
+                [InlineKeyboardButton("🔄 اضغط هنا بعد الاشتراك", callback_data="check_sub")]
+            ])
+            await message.reply_text(
+                "⚠️ **عذراً، يجب عليك الاشتراك في قناة البوت أولاً لتمكين الاستخدام!**\n\n"
+                f"• القناة: `{forced_channel}`\n\n"
+                "اشتَرِك بالقناة ثم اضغط على زر التحقق أدناه 👇",
+                reply_markup=keyboard
+            )
+            return
+
     temp_users[user_id] = {"step": "waiting_code"}
     await message.reply_text(
-        "أهلاً بك عزيزي في بوت تنصيب سورس الربيعي برو ⚡\n\n"
-        "🔑 **الخطوة الأولى:**\n"
-        "يرجى إرسال كود الاشتراك الخاص بك لتفعيل التنصيب:\n\n"
+        f"👋 أهلاً بك عزيزي في بوت تنصيب **سورس الربيعي برو** ⚡️\n\n"
+        f"🔑 **الخطوة الأولى:**\nيرجى إرسال **كود الاشتراك** الخاص بك لتفعيل التنصيب:\n\n"
         f"[ المطور: @{ADMIN_USERNAME} ]"
     )
 
 @bot_app.on_callback_query(filters.regex("check_sub"))
-async def check_sub_callback(client, cq):
-    if await check_all_subscriptions(client, cq.from_user.id):
-        try:
-            await cq.message.delete()
-        except:
-            pass
-        temp_users[cq.from_user.id] = {"step": "waiting_code"}
-        await cq.message.reply_text("✅ **شكراً لاشتراكك!**\n\n🔑 الآن أرسل **كود الاشتراك** الخاص بك:")
+async def check_sub_callback(client, callback_query):
+    user_id = callback_query.from_user.id
+    is_subbed = await check_subscription(client, user_id)
+    if is_subbed:
+        await callback_query.message.delete()
+        temp_users[user_id] = {"step": "waiting_code"}
+        await callback_query.message.reply_text(
+            f"✅ **شكراً لاشتراكك في القناة!**\n\n"
+            f"👋 أهلاً بك عزيزي في بوت تنصيب **سورس الربيعي برو** ⚡️\n\n"
+            f"🔑 **الخطوة الأولى:**\nيرجى إرسال **كود الاشتراك** الخاص بك لتفعيل التنصيب:\n\n"
+            f"[ المطور: @{ADMIN_USERNAME} ]"
+        )
     else:
-        await cq.answer("❌ لم تشترك في جميع القنوات بعد!", show_alert=True)
+        await callback_query.answer("❌ عذراً, أنت لم تشترك في القناة بعد أو لم يتم التحقق بنجاح! يرجى التأكد من الاشتراك أولاً.", show_alert=True)
 
-@bot_app.on_message(filters.private & ~filters.command(["start", "code", "اضافه_قناة", "حذف_قناة"]))
+@bot_app.on_message(filters.private & ~filters.command("start") & ~filters.command("code") & ~filters.command("addch") & ~filters.command("delch"))
 async def handle_user_input(client, message):
     user_id = message.from_user.id
-    if user_id not in temp_users: return await message.reply_text("أرسل /start للبدء.")
+    
+    if forced_channel and user_id not in temp_users and str(user_id) not in user_sessions:
+        is_subbed = await check_subscription(client, user_id)
+        if not is_subbed:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📢 اضغط هنا للاشتراك بالقناة", url=f"https://t.me/{forced_channel.replace('@', '')}")],
+                [InlineKeyboardButton("🔄 اضغط هنا بعد الاشتراك", callback_data="check_sub")]
+            ])
+            await message.reply_text(
+                "⚠️ **يجب عليك الاشتراك في قناة البوت أولاً!**\n\nاشترك بالقناة ثم اضغط التحقق:",
+                reply_markup=keyboard
+            )
+            return
+
+    if user_id not in temp_users:
+        return await message.reply_text("أرسل /start للبدء من جديد.")
     
     user_data = temp_users[user_id]
     step = user_data.get("step")
 
     if step == "waiting_code":
         code = message.text.strip()
-        if code not in active_subscriptions or active_subscriptions[code]["used"]:
-            return await message.reply_text("❌ **الكود غير صحيح أو مستخدم مسبقاً!**")
+        if code not in active_subscriptions:
+            return await message.reply_text("❌ **الكود غير صحيح!** تأكد من الكود وأرسله مرة أخرى:")
         
         sub_info = active_subscriptions[code]
-        sub_info["used"] = True
+        if sub_info["used"]:
+            return await message.reply_text("⚠️ **هذا الكود تم استخدامه مسبقاً ولا يمكن استخدامه مرة أخرى!**")
+        
         user_data["days"] = sub_info["days"]
+        sub_info["used"] = True
+        
         db["subscriptions"] = active_subscriptions
         save_database(db)
         
         user_data["step"] = "waiting_phone"
-        await message.reply_text(f"✅ **تم قبول الكود ({sub_info['days']} أيام)!**\n\n📱 أرسل رقم هاتفك مع رمز الدولة (مثال:\n`+9647700000000`):")
+        await message.reply_text(f"✅ **تم قبول الكود بنجاح! (اشتراك لمدة {sub_info['days']} أيام)**\n\n📱 **الخطوة الثانية:**\nالآن أرسل رقم هاتفك مع رمز الدولة (مثال:\n`+9647700000000`):")
 
     elif step == "waiting_phone":
-        phone = message.text.strip()
+        phone_number = message.text.strip()
         session_name = f"rubaie_session_{user_id}"
         user_client = Client(session_name, api_id=API_ID, api_hash=API_HASH)
         await user_client.connect()
         try:
-            sent_code = await user_client.send_code(phone)
-            user_data.update({"client": user_client, "phone": phone, "phone_code_hash": sent_code.phone_code_hash, "step": "waiting_tg_code"})
-            
-            await message.reply_text(
-                "🔄 جاري الاتصال بتليجرام وإرسال كود التحقق...\n\n"
-                "✉️ تم إرسال كود التحقق إلى حسابك في تليجرام.\n\n"
-                "أرسل الكود الآن:"
-            )
+            sent_code = await user_client.send_code(phone_number)
+            user_data.update({"client": user_client, "phone": phone_number, "phone_code_hash": sent_code.phone_code_hash, "step": "waiting_tg_code"})
+            await message.reply_text("🔄 **جاري الاتصال بتليجرام وإرسال كود التحقق...**\n\n✉️ تم إرسال كود التحقق إلى حسابك في تليجرام.\n\nأرسل الكود الآن:")
         except Exception as e:
             await user_client.disconnect()
             del temp_users[user_id]
-            await message.reply_text(f"❌ خطأ: `{e}`")
+            await message.reply_text(f"❌ حدث خطأ: `{e}`\nأرسل /start وابدأ من جديد.")
 
     elif step == "waiting_tg_code":
-        raw_code = message.text.strip()
-        code = "".join(filter(str.isdigit, raw_code))
-        
-        if not code:
-            return await message.reply_text("❌ **يرجى إرسال أرقام كود التحقق فقط بالشكل الصحيح!**")
-
+        code = message.text.strip().replace(" ", "")
         try:
             await user_data["client"].sign_in(user_data["phone"], user_data["phone_code_hash"], code)
             await finalize_success(message, user_data["client"], user_data)
         except SessionPasswordNeeded:
             user_data["step"] = "waiting_password"
-            await message.reply_text("🔒 **الحساب محمي بكلمة مرور (تحقق بخطوتين).**\nأرسل كلمة المرور:")
+            await message.reply_text("🔒 **الحساب محمي بكلمة مرور (التحقق بخطوتين).**\n\nأرسل كلمة المرور الخاصة بحسابك الآن:")
         except PhoneCodeInvalid:
-            await message.reply_text("❌ **الكود غير صحيح!** أعد إرساله بالشكل الصحيح:")
+            await message.reply_text("❌ **الكود غير صحيح!** أرسل الكود الصحيح مرة أخرى:")
         except Exception as e:
-            await message.reply_text(f"❌ خطأ: `{e}`")
+            await message.reply_text(f"❌ خطأ: `{e}`\nأرسل /start وابدأ من جديد.")
             try: await user_data["client"].disconnect()
             except: pass
             del temp_users[user_id]
@@ -486,52 +551,47 @@ async def handle_user_input(client, message):
             await user_data["client"].check_password(message.text.strip())
             await finalize_success(message, user_data["client"], user_data)
         except Exception as e:
-            await message.reply_text(f"❌ كلمة المرور خطأ: `{e}`")
-            try:
-                await user_data["client"].disconnect()
-            except:
-                pass
+            await message.reply_text(f"❌ كلمة المرور غير صحيحة أو حدث خطأ: `{e}`\nأرسل /start وابدأ من جديد.")
+            try: await user_data["client"].disconnect()
+            except: pass
             del temp_users[user_id]
 
-
 async def finalize_success(message, user_client, user_data):
+    await message.reply_text("🎉 **تم تسجيل الدخول وحفظ الجلسة بنجاح!**\n\n🚀 **جاري تشغيل سورس الربيعي بكافة الأوامر على حسابك الآن...**")
     session_name = user_client.name
+    await user_client.disconnect()
     days_count = user_data.get("days", 1)
+    expire_timestamp = time.time() + (days_count * 86400)
     
-    expire_time = time.time() + (days_count * 86400)
-
-    user_sessions[str(message.from_user.id)] = {"session_name": session_name, "expire_time": expire_time}
+    user_sessions[str(message.from_user.id)] = {
+        "session_name": session_name,
+        "expire_time": expire_timestamp
+    }
     db["user_sessions"] = user_sessions
     save_database(db)
 
-    await message.reply_text("🎉 **تم تسجيل الدخول وحفظ الجلسة بنجاح!**")
-    await message.reply_text("🚀 **جاري تشغيل سورس الربيعي بكافة الأوامر على حسابك الآن...**")
+    asyncio.create_task(start_user_source(session_name, expire_timestamp, message.from_user.id))
+    if message.from_user.id in temp_users:
+        del temp_users[message.from_user.id]
+    await message.reply_text(f"✅ **تم تنصيب وتشغيل سورس الربيعي بنجاح!**\n⏳ اشتراكك فعال لمدة `{days_count} أيام`.\n\nتستطيع الآن استخدام الأوامر مثل `.الاوامر` أو `.م` في أي محادثة.\n[ المطور: @{ADMIN_USERNAME} ]")
 
-    asyncio.create_task(start_user_source(session_name, expire_time, message.from_user.id))
-    if message.from_user.id in temp_users: del temp_users[message.from_user.id]
-    
-    await message.reply_text(
-        f"✅ **تم تنصيب وتشغيل سورس الربيعي بنجاح!**\n"
-        f"⏳ **اشتراكك فعال لمدة {days_count} أيام.**\n\n"
-        f"تستطيع الآن استخدام الأوامر مثل `.الاوامر` أو `.م` في أي مجموعة.\n\n"
-        f"[ المطور: @{ADMIN_USERNAME} ]"
-    )
-
+# استعادة الجلسات القديمة عند بدء البوت
 async def restore_saved_sessions():
     current_time = time.time()
     for uid_str, data in list(user_sessions.items()):
         if current_time < data["expire_time"]:
             asyncio.create_task(start_user_source(data["session_name"], data["expire_time"], int(uid_str)))
+            print(f"🔄 تمت استعادة وتفعيل سورس المستخدم: {uid_str}")
         else:
             del user_sessions[uid_str]
     db["user_sessions"] = user_sessions
     save_database(db)
 
 async def main():
+    print(f"🚀 [بوت صانع سورسات الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
     await restore_saved_sessions()
     await bot_app.start()
-    print("✨ تم تشغيل البوت بنجاح وهو الآن مستعد لتلقي الأوامر...")
-    await asyncio.Event().wait()
+    await asyncio.gather(*(c.wait() for c in bot_app.get_dialogs()))
 
 if __name__ == "__main__":
     bot_app.run()
