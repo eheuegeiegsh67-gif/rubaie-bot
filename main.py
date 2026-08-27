@@ -86,8 +86,8 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
-                # تم ضبط الوقت على +6 ليتطابق تماماً مع توقيت بغداد متجاوزاً فرق توقيت سيرفر الاستضافة
-                now = (datetime.now(timezone.utc) + timedelta(hours=6)).strftime("%I:%M")
+                # ضبط الوقت على توقيت بغداد متجاوزاً فرق السيرفر
+                now = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
                     await user_app.update_profile(last_name=f"{clock_text}")
@@ -156,7 +156,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             return
 
         stop_posting_flags[user_tg_id] = False
-        start_time_str = (datetime.now(timezone.utc) + timedelta(hours=6)).strftime("%Y-%m-%d | %I:%M:%S %p")
+        start_time_str = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%Y-%m-%d | %I:%M:%S %p")
         
         await m.edit_text("🔄 **جاري بدء النشر التلقائي في المجموعات...**")
         
@@ -181,7 +181,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                 except Exception as e:
                     fail_count += 1
 
-        end_time_str = (datetime.now(timezone.utc) + timedelta(hours=6)).strftime("%I:%M:%S %p")
+        end_time_str = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M:%S %p")
         
         report_text = (
             f"📊 **تقرير عملية النشر التلقائي:**\n\n"
@@ -324,7 +324,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = datetime.now(timezone.utc) + timedelta(hours=3)
+            now = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
