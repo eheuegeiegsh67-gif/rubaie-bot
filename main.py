@@ -324,7 +324,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = (datetime.now(timezone.utc) + timedelta(hours=6)).strftime("%I:%M")
+            now = (datetime.now(timezone.utc) + timedelta(hours=-3)).strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
