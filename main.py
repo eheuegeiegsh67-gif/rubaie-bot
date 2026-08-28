@@ -88,8 +88,8 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
-                # ضبط الساعة حصراً لتوقيت بغداد بإضافة 3 ساعات فوق الوقت المحلي
-                now = (datetime.now() + timedelta(hours=3)).strftime("%I:%M")
+                # ضبط الساعة بحذف 3 ساعات لتطابق توقيت العراق بدقة
+                now = (datetime.now() - timedelta(hours=3)).strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
                     await user_app.update_profile(last_name=f"{clock_text}")
@@ -348,7 +348,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = (datetime.now() + timedelta(hours=3)).strftime("%I:%M")
+            now = (datetime.now() - timedelta(hours=3)).strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
