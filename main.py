@@ -16,9 +16,6 @@ API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 ADMIN_ID = 7989509412
 ADMIN_USERNAME = "Al_Rubaie15"
 
-# تحديد التوقيت المحلي لمدينة بغداد (العراق) بدقة تامة (UTC+3)
-BAGHDAD_TZ = timezone(timedelta(hours=3))
-
 # بوت التحكم الرئيسي
 bot_app = Client(
     "Rubaie_Maker_Bot",
@@ -57,7 +54,7 @@ muted_users = set()
 original_profile = {}     
 sleep_mode = [False]      
 warn_counts = {}          
-last_warn_msgs = {}   # لتخزين كائن آخر رسالة تحذير أرسلها البوت لكل مستخدم حتى يتم حذفها
+last_warn_msgs = {}   
 stop_posting_flags = {}   
 
 FONTS_MAP = {
@@ -91,8 +88,8 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
-                # ربط الساعة بتوقيت بغداد (العراق) حصراً
-                now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
+                # ضبط الساعة حصراً لتوقيت بغداد بإضافة 3 ساعات فوق الوقت المحلي
+                now = (datetime.now() + timedelta(hours=3)).strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
                     await user_app.update_profile(last_name=f"{clock_text}")
@@ -219,7 +216,6 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             warn_counts[user_id] = warn_counts.get(user_id, 0) + 1
             current_warns = warn_counts[user_id]
 
-            # حذف التحذير القديم إذا كان موجوداً لتجنب تراكم الرسائل
             if user_id in last_warn_msgs:
                 try:
                     await last_warn_msgs[user_id].delete()
@@ -352,7 +348,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
+            now = (datetime.now() + timedelta(hours=3)).strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
