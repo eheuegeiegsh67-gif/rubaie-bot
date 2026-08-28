@@ -588,7 +588,11 @@ async def main():
     print(f"🚀 [بوت صانع سورسات الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
     await restore_saved_sessions()
     await bot_app.start()
-    await asyncio.gather(*(c.wait() for c in bot_app.get_dialogs()))
+    print("✅ تم بدء تشغيل بوت التنصيب بنجاح ويستمع للأوامر الآن.")
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    bot_app.run()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("🛑 تم إيقاف البوت يدويياً.")
