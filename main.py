@@ -9,12 +9,15 @@ from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotPart
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==================== الإعدادات الأساسية ====================
-BOT_TOKEN = "8938082118:AAHWa070-4EKOTg5ukM50smhfyfnQ9V1OZw"
+BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
 API_ID = 38183563
 API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 
 ADMIN_ID = 7989509412
 ADMIN_USERNAME = "Al_Rubaie15"
+
+# تحديد التوقيت (UTC+3) خلف الكواليس لتحديث الساعة فقط
+BAGHDAD_TZ = timezone(timedelta(hours=3))
 
 # بوت التحكم الرئيسي
 bot_app = Client(
@@ -88,8 +91,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         last_updated_time = ""
         while is_clock_running[0]:
             try:
-                # ضبط الساعة بحذف 3 ساعات لتطابق توقيت العراق بدقة
-                now = (datetime.now() - timedelta(hours=3)).strftime("%I:%M")
+                now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
                 if now != last_updated_time:
                     clock_text = format_time_with_font(now, current_font_style[0])
                     await user_app.update_profile(last_name=f"{clock_text}")
@@ -120,7 +122,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     @user_app.on_message(filters.me & filters.command(["الاوامر", "الأوامر", "م"], prefixes="."))
     async def main_menu(c, m):
         await m.edit_text(
-            "⚡️ **قائمة اوامر سورس الربيعي (توقيت العراق)** ✨\n\n"
+            "⚡️ **قائمة اوامر سورس الربيعي** ✨\n\n"
             "🕑 الوقت واللقب: `.م1` ⭐\n"
             "🎁 التخزين السحابي: `.م2` 🎁\n"
             "🗣 النشر والتوجيه: `.م3` 🎙\n"
@@ -135,7 +137,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
 
     @user_app.on_message(filters.me & filters.command(["م1"], prefixes="."))
     async def menu_1(c, m):
-        await m.edit_text("⭐ **أوامر الوقت واللقب (.م1):**\n\n• `.اسم وقتي` لتشغيل الساعة (حسب توقيت العراق).\n• أرسل رقم من 1 إلى 8 لتغيير خط الساعة.")
+        await m.edit_text("⭐ **أوامر الوقت واللقب (.م1):**\n\n• `.اسم وقتي` لتشغيل الساعة.\n• أرسل رقم من 1 إلى 8 لتغيير خط الساعة.")
 
     @user_app.on_message(filters.me & filters.command(["م2"], prefixes="."))
     async def menu_2(c, m):
@@ -348,11 +350,11 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         txt = m.text.strip()
         if txt in FONTS_MAP:
             current_font_style[0] = txt
-            now = (datetime.now() - timedelta(hours=3)).strftime("%I:%M")
+            now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
             clock_text = format_time_with_font(now, txt)
             try:
                 await user_app.update_profile(last_name=f"{clock_text}")
-                await m.edit_text(f"🟢 **تم تغيير الخط إلى ({txt}) وضبط الساعة حسب توقيت العراق: ({clock_text})**")
+                await m.edit_text(f"🟢 **تم تغيير الخط إلى ({txt}) وضبط الساعة بنجاح: ({clock_text})**")
             except:
                 pass
 
@@ -361,7 +363,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         asyncio.create_task(update_clock())
         asyncio.create_task(monitor_expiration())
         user_active_sources[user_tg_id] = {"app": user_app, "session": client_session_name}
-        print(f"✅ تم تشغيل سورس المستخدم بكافة الأوامر وتوقيت بغداد بنجاح: {client_session_name}")
+        print(f"✅ تم تشغيل سورس المستخدم بكافة الأوامر بنجاح: {client_session_name}")
     except Exception as e:
         print(f"❌ فشل تشغيل سورس المستخدم: {e}")
 
@@ -571,7 +573,6 @@ async def finalize_success(message, user_client, user_data):
         del temp_users[message.from_user.id]
     await message.reply_text(f"✅ **تم تنصيب وتشغيل سورس الربيعي بنجاح!**\n⏳ اشتراكك فعال لمدة `{days_count} أيام`.\n\nتستطيع الآن استخدام الأوامر مثل `.الاوامر` أو `.م` في أي محادثة.\n[ المطور: @{ADMIN_USERNAME} ]")
 
-# استعادة الجلسات القديمة عند بدء البوت
 async def restore_saved_sessions():
     current_time = time.time()
     for uid_str, data in list(user_sessions.items()):
