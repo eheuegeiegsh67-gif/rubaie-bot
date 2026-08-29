@@ -9,7 +9,7 @@ from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotPart
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==================== الإعدادات الأساسية ====================
-BOT_TOKEN = "8938082118:AAHWa070-4EKOTg5ukM50smhfyfnQ9V1OZw"
+BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
 API_ID = 38183563
 API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 
