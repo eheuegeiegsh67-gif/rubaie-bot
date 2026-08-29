@@ -8,7 +8,7 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import SessionPasswordNeeded
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-BOT_TOKEN = "8938082118:AAHWa070-4EKOTg5ukM50smhfyf"
+BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
 API_ID = 38183563
 API_HASH = "7d3d3b379c6840a72c983865c8d927d"
 
