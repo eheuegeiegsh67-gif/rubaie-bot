@@ -584,15 +584,15 @@ async def restore_saved_sessions():
             del user_sessions[uid_str]
     db["user_sessions"] = user_sessions
     save_database(db)
-
 async def main():
-    print(f"🚀 [بوت صانع سورسات الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
+    print(f"🚀 سورس الربيعي المتكامل للمطور")
     await restore_saved_sessions()
     await bot_app.start()
-    print("✅ بوت التنصيب الرئيسي يعمل الآن ويستقبل الأوامر...")
+    print(f"✅ البوت الرئيسي يعمل الآن ويستقبل الأوامر")
     
-    # استخدام الحلقة التلقائية الصحيحة المتوافقة مع Pyrogram الحديث
-    await asyncio.Event().wait()
+    # استخدام طريقة البقاء النشط الخاصة بـ pyrogram بدلاً من الـ Event المعلق
+    from pyrogram import idle
+    await idle()
 
 if __name__ == "__main__":
     asyncio.run(main())
