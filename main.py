@@ -1,17 +1,15 @@
-import asyncio
 import os
 import json
 import time
 from datetime import datetime, timezone, timedelta
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus
-from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotParticipant
+from pyrogram.errors import SessionPasswordNeeded
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# ==================== الإعدادات الأساسية ====================
-BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
+BOT_TOKEN = "8938082118:AAHWa070-4EKOTg5ukM50smhfyf"
 API_ID = 38183563
-API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
+API_HASH = "7d3d3b379c6840a72c983865c8d927d"
 
 ADMIN_ID = 7989509412
 ADMIN_USERNAME = "Al_Rubaie15"
