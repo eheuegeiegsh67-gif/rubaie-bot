@@ -1,2 +1,2 @@
-worker: python mainaa.py
+worker: python main.py
 
