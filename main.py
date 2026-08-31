@@ -9,7 +9,7 @@ from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotPart
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==================== الإعدادات الأساسية ====================
-BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
+BOT_TOKEN = "8938082118:AAHWa070-4EKOTg5ukM50smhfyfnQ9V1OZw"
 API_ID = 38183563
 API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 
@@ -589,7 +589,7 @@ async def restore_saved_sessions():
     save_database(db)
 
 async def __main():
-    print(f"🚀 [سورس الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
+    print(f"🚀 [سورس سورس المتكامل للمطور @{ADMIN_USERNAME}] يعمل ")
     await restore_saved_sessions()
     await bot_app.start()
     from pyrogram import idle
