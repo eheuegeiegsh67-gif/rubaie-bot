@@ -16,18 +16,26 @@ API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 ADMIN_ID = 7989509412
 ADMIN_USERNAME = "Al_Rubaie15"
 
-# تحديد التوقيت المحلي لمدينة بغداد (العراق) بدقة تامة (UTC+3)
+# ==================== إعدادات البروكسي لتجاوز الحظر ====================
+USE_PROXY = False  # اجعلها True إذا أردت تفعيل البروكسي وأدخل البيانات أدناه
+PROXY_CONFIG = {
+    "scheme": "socks5",  # أو "http" أو "mtproto"
+    "hostname": "PROXY_IP_HERE",
+    "port": 1080,
+    "username": "USERNAME_IF_ANY",
+    "password": "PASSWORD_IF_ANY"
+} if USE_PROXY else None
+
 BAGHDAD_TZ = timezone(timedelta(hours=3))
 
-# بوت التحكم الرئيسي
 bot_app = Client(
     "Rubaie_Maker_Bot",
     api_id=API_ID,
     api_hash=API_HASH,
-    bot_token=BOT_TOKEN
+    bot_token=BOT_TOKEN,
+    proxy=PROXY_CONFIG
 )
 
-# ==================== نظام قاعدة البيانات المحفوظة (JSON) ====================
 DB_FILE = "database.json"
 
 def load_database():
@@ -75,8 +83,6 @@ def format_time_with_font(time_str, style):
     font_dict = FONTS_MAP.get(style, FONTS_MAP["2"])
     return "".join(font_dict.get(char, char) for char in time_str)
 
-
-# ==================== دوال الزخرفة (8 أنواع للأسماء والنصوص) ====================
 def decorate_text(text, style_num):
     if style_num == "1":
         return "".join(chr(ord(c) + 65248) if 33 <= ord(c) <= 126 else c for c in text)
@@ -97,13 +103,13 @@ def decorate_text(text, style_num):
         return f"𝓡ُ {text} 𝓡ُ"
     return text
 
-
 # ==================== دالة تشغيل السورس بكافة الأوامر ====================
 async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     user_app = Client(
         client_session_name,
         api_id=API_ID,
-        api_hash=API_HASH
+        api_hash=API_HASH,
+        proxy=PROXY_CONFIG
     )
     
     is_clock_running = [True]  
@@ -125,7 +131,6 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     async def monitor_expiration():
         while is_clock_running[0]:
             if time.time() >= expire_timestamp:
-                print(f"انقضاء الوقت للمستخدم: {user_tg_id}")
                 try:
                     await user_app.stop()
                 except:
@@ -140,81 +145,47 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                 break
             await asyncio.sleep(60)
 
+    # ==================== نظام الكتم التلقائي (يعمل حتى لو كنت عضواً في الكروبات) ====================
+    @user_app.on_message(~filters.me & (filters.group | filters.supergroup | filters.private))
+    async def global_mute_handler(c, m):
+        if m.from_user and m.from_user.id in muted_users:
+            try:
+                await m.delete()  # حذف رسالة الشخص المكتوم فوراً حتى لو كنت عضواً فقط
+            except Exception as e:
+                print(f"خطأ في حذف رسالة الشخص المكتوم: {e}")
+            m.stop_propagation()
+
     # ==================== القائمة الرئيسية ====================
     @user_app.on_message(filters.me & filters.command(["الاوامر", "الأوامر", "م"], prefixes="."))
     async def main_menu(c, m):
         await m.edit_text(
             "┌─────── **source Al-Rubaie** ───────┐\n\n"
-            "• `.م1` ➔ اوامر الخاص\n"
-            "• `.م2` ➔ اوامر الردود\n"
+            "• `.م1` ➔ اوامر الخاص وكتم الأعضاء\n"
             "• `.م3` ➔ اوامر النشر التلقائي\n"
-            "• `.م4` ➔ اوامر الحساب\n"
-            "• `.م5` ➔ اوامر التسلية\n"
-            "• `.م6` ➔ اوامر وعد\n"
-            "• `.م7` ➔ اوامر اليوتيوب\n"
-            "• `.م8` ➔ اوامر المجموعات\n"
-            "• `.م9` ➔ اوامر الاذاعة والاذكار\n"
-            "• `.م10` ➔ اوامر الخطوط والترجمة\n"
-            "• `.م11` ➔ اوامر التنصيب والسورس\n"
             "• `.م12` ➔ اوامر المغادرات والكروبات\n"
-            "• `.م13` ➔ اوامر الذاتية والتجميع\n"
-            "• `.م14` ➔ اوامر ردود الذكاء والاضافة\n"
-            "• `.م15` ➔ اوامر التحويل والنسخ\n"
-            "• `.م16` ➔ اوامر اخرى\n"
-            "• `.م17` ➔ اوامر الذكاء الاصطناعي\n"
-            "• `.م18` ➔ اوامر عرض القنوات\n"
             "• `.م19` ➔ اوامر الزخرفة (8 أنواع)\n"
-            "• `.م20` ➔ اوامر اضافية\n"
-            "• `.م21` ➔ اوامر التسلية 2\n"
-            "• `.م22` ➔ اوامر البصمات\n"
             "• `.م23` ➔ اوامر التقليد والانتحال\n"
-            "• `.م24` ➔ اوامر الرفع والتحشيش\n"
-            "• `.م25` ➔ اوامر صيد اليوزرات\n"
-            "• `.م26` ➔ اوامر التمويل\n"
-            "• `.م27` ➔ اوامر الرصيد والالعاب\n"
-            "• `.م28` ➔ اوامر الافتارات والفيديو\n"
-            "• `.م29` ➔ اوامر التحذيرات ونضع النوم\n"
-            "• `.م30` ➔ اوامر حماية الحساب\n"
-            "• `.م31` ➔ البين والشفافية\n\n"
+            "• `.م29` ➔ اوامر التحذيرات ونضع النوم\n\n"
             "• `.create_groups` ➔ صانع الكروبات التلقائي 🚀\n\n"
             f"└─────── **@{ADMIN_USERNAME}** ───────┘"
         )
 
     @user_app.on_message(filters.me & filters.command(["م1"], prefixes="."))
     async def menu_1(c, m):
-        await m.edit_text("⭐ **أوامر الخاص (.م1):**\n• `.اسم وقتي` لتشغيل الساعة حسب توقيت بغداد.\n• إدارة الرسائل الخاصة والكتم.")
-
-    @user_app.on_message(filters.me & filters.command(["م3"], prefixes="."))
-    async def menu_3(c, m):
-        await m.edit_text("🎙 **أوامر النشر التلقائي (.م3):**\n• رد بـ `.نشر` أو `.توجيه` للمجموعات.\n• `.إيقاف_نشر` لإيقاف النشر.")
+        await m.edit_text("⭐ **أوامر الخاص والكتم (.م1):**\n• استخدم `.كتم` بالرد على الشخص لكتمه في الخاص والكروبات (حتى لو كنت عضواً).\n• استخدم `.سماح` لإلغاء الكتم.")
 
     @user_app.on_message(filters.me & filters.command(["م12"], prefixes="."))
     async def menu_12(c, m):
-        await m.edit_text("🌐 **أوامر المغادرات والكروبات (.م12):**\n• استخدم الأمر `.create_groups [العدد]` لإنشاء الكروبات التلقائية مع إرسال الرسائل والمغادرة وإرسال الروابط للخاص.")
-
-    @user_app.on_message(filters.me & filters.command(["م19"], prefixes="."))
-    async def menu_19(c, m):
-        await m.edit_text("✍️ **أوامر الزخرفة (.م19):**\n• استخدم الأمر `.زخرفة [الرقم (1 إلى 8)] [النص]` لزخرفة أي جملة بـ 8 أنواع مختلفة ومميزة!")
-
-    @user_app.on_message(filters.me & filters.command(["م23"], prefixes="."))
-    async def menu_23(c, m):
-        await m.edit_text("⚽️ **أوامر التقليد والانتحال (.م23):**\n• `.انتحال` بالرد على الشخص.\n• `.اعاده` لاسترجاع شخصيتك القديمة.")
-
-    @user_app.on_message(filters.me & filters.command(["م29"], prefixes="."))
-    async def menu_29(c, m):
-        await m.edit_text("🌙 **أوامر التحذيرات (.م29):**\n• `.نوم` لتفعيل الرد التلقائي والتحذيرات (5 رسائل ثم كتم).\n• `.كاعد` لإطفاء وضع النوم.")
+        await m.edit_text("🌐 **أوامر المغادرات والكروبات (.م12):**\n• استخدم الأمر `.create_groups [العدد]` لإنشاء الكروبات التلقائية وإرسال الروابط للخاص.")
 
     @user_app.on_message(filters.me & filters.command(["زخرفة", "زخرفه"], prefixes="."))
     async def decorate_command(c, m):
         args = m.text.split(maxsplit=2)
         if len(args) < 3:
-            await m.edit_text("⚠️ **استخدام خاطئ!**\nاكتب هكذا: `.زخرفة [1-8] [النص المراد زخرفته]`")
-            return
-        style_num = args[1]
-        text_to_decorate = args[2]
+            return await m.edit_text("⚠️ **استخدام خاطئ!**\nاكتب هكذا: `.زخرفة [1-8] [النص المراد زخرفته]`")
+        style_num, text_to_decorate = args[1], args[2]
         if style_num not in [str(i) for i in range(1, 9)]:
-            await m.edit_text("⚠️ **اختر رقماً للزخرفة من 1 إلى 8 فقط!**")
-            return
+            return await m.edit_text("⚠️ **اختر رقماً للزخرفة من 1 إلى 8 فقط!**")
         result = decorate_text(text_to_decorate, style_num)
         await m.edit_text(f"✨ **النص بعد الزخرفة (نوع {style_num}):**\n\n`{result}`")
 
@@ -238,102 +209,56 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                     await asyncio.sleep(0.4)
                 invite_link = await c.export_chat_invite_link(chat_id)
                 await c.leave_chat(chat_id)
-                result_text = f"⌔︙تم صنع كروب رقم {i}\n🌐︙الرابط : {invite_link}"
-                await c.send_message("me", result_text)
+                await c.send_message("me", f"⌔︙تم صنع كروب رقم {i}\n🌐︙الرابط : {invite_link}")
                 await asyncio.sleep(2)
             except Exception as e:
-                await c.send_message("me", f"❌ حدث خطأ في الكروب رقم {i}: {str(e)}")
+                await c.send_message("me", f"❌ خطأ في الكروب رقم {i}: {str(e)}")
                 await asyncio.sleep(3)
         await c.send_message("me", "✅ **تم الانتهاء من إنشاء جميع الكروبات وإرسال الروابط بنجاح!**")
 
-    @user_app.on_message(filters.me & filters.command(["نشر", "توجيه"], prefixes="."))
-    async def auto_post_cmd(c, m):
-        if not m.reply_to_message:
-            await m.edit_text("⚠️ **قم بالرد على الرسالة المراد نشرها!**")
-            return
-        stop_posting_flags[user_tg_id] = False
-        await m.edit_text("🔄 **جاري بدء النشر التلقائي... (`.إيقاف_نشر` للإيقاف)**")
-        success_count = 0
-        async for dialog in c.get_dialogs():
-            if stop_posting_flags.get(user_tg_id, False):
-                break
-            if dialog.chat.type.value in ["group", "supergroup"]:
-                try:
-                    await m.reply_to_message.forward(dialog.chat.id)
-                    success_count += 1
-                    await asyncio.sleep(2)
-                except:
-                    pass
-        await m.edit_text(f"✅ **تم الانتهاء من النشر في ({success_count}) مجموعة بنجاح!**")
-
-    @user_app.on_message(filters.me & filters.command(["إيقاف_نشر", "ايقاف_النشر"], prefixes="."))
-    async def stop_posting_cmd(c, m):
-        stop_posting_flags[user_tg_id] = True
-        await m.edit_text("🛑 **تم إيقاف النشر التلقائي فوراً!**")
-
-    @user_app.on_message(filters.me & filters.command(["نوم"], prefixes="."))
-    async def sleep_on(c, m):
-        sleep_mode[0] = True
-        warn_counts.clear()
-        last_warn_msgs.clear()
-        await m.edit_text("🌙 **تم تفعيل وضع النوم والتحذيرات التلقائية بنجاح!**")
-
-    @user_app.on_message(filters.me & filters.command(["كاعد", "صاحي"], prefixes="."))
-    async def sleep_off(c, m):
-        sleep_mode[0] = False
-        warn_counts.clear()
-        last_warn_msgs.clear()
-        await m.edit_text("☀️ **تم إطفاء وضع النوم وعودتك للوضع الطبيعي!**")
-
-    @user_app.on_message(filters.incoming & filters.private & ~filters.me)
-    async def auto_reply_sleep(c, m):
-        if m.from_user and m.from_user.id in muted_users:
-            try: await m.delete(revoke=True)
-            except: pass
-            m.stop_propagation()
-            return
-        if sleep_mode[0]:
-            user_id = m.from_user.id
-            warn_counts[user_id] = warn_counts.get(user_id, 0) + 1
-            current_warns = warn_counts[user_id]
-            if user_id in last_warn_msgs:
-                try: await last_warn_msgs[user_id].delete()
-                except: pass
-            if current_warns >= 5:
-                muted_users.add(user_id)
-                if user_id in last_warn_msgs: del last_warn_msgs[user_id]
-                try: await m.reply("🚫 **تجاوزت الحد المسموح (5/5)، تم كتمك تلقائياً!**")
-                except: pass
-            else:
-                try:
-                    sent_msg = await m.reply(f"😴 **المستخدم في وضع النوم ({current_warns}/5). يرجى عدم الإزعاج!**")
-                    last_warn_msgs[user_id] = sent_msg
-                except: pass
-
     @user_app.on_message(filters.me & filters.command(["كتم"], prefixes="."))
     async def mute_user_cmd(c, m):
-        uid = m.reply_to_message.from_user.id if (m.reply_to_message and m.reply_to_message.from_user) else (m.chat.id if m.chat.type.value == "private" else None)
+        uid = None
+        if m.reply_to_message and m.reply_to_message.from_user:
+            uid = m.reply_to_message.from_user.id
+        elif len(m.text.split()) > 1:
+            arg = m.text.split()[1]
+            if arg.isdigit():
+                uid = int(arg)
+            else:
+                try:
+                    user_obj = await c.get_users(arg)
+                    uid = user_obj.id
+                except:
+                    pass
+        
         if uid:
             muted_users.add(uid)
-            await m.edit_text("✨ **تم كتم الشخص بنجاح!**")
+            await m.edit_text(f"✨ **تم كتم المستخدم (`{uid}`) بنجاح في الخاص والكروبات!**")
         else:
-            await m.edit_text("⚠️ **حدد الشخص المطلوب كتمه بالرد عليه.**")
+            await m.edit_text("⚠️ **رد على الشخص أو أكتب آيديه/معرفه لكتمه.**")
 
     @user_app.on_message(filters.me & filters.command(["سماح"], prefixes="."))
     async def unmute_user_cmd(c, m):
-        uid = m.reply_to_message.from_user.id if (m.reply_to_message and m.reply_to_message.from_user) else (m.chat.id if m.chat.type.value == "private" else None)
+        uid = None
+        if m.reply_to_message and m.reply_to_message.from_user:
+            uid = m.reply_to_message.from_user.id
+        elif len(m.text.split()) > 1:
+            arg = m.text.split()[1]
+            if arg.isdigit():
+                uid = int(arg)
+            else:
+                try:
+                    user_obj = await c.get_users(arg)
+                    uid = user_obj.id
+                except:
+                    pass
+
         if uid and uid in muted_users:
             muted_users.remove(uid)
-            await m.edit_text("✨ **تم إلغاء كتم الشخص بنجاح!**")
+            await m.edit_text(f"✨ **تم إلغاء كتم المستخدم (`{uid}`) بنجاح!**")
         else:
-            await m.edit_text("ℹ️ **المستخدم ليس في قائمة الكتم.**")
-
-    @user_app.on_message(filters.incoming & ~filters.me)
-    async def check_muted_everywhere(c, m):
-        if m.from_user and m.from_user.id in muted_users:
-            try: await m.delete(revoke=True)
-            except: pass
-            m.stop_propagation()
+            await m.edit_text("ℹ️ **المستخدم ليس في قائمة الكتم أو لم تحدده بشكل صحيح.**")
 
     @user_app.on_message(filters.me & filters.command(["انتحال"], prefixes="."))
     async def impersonate_cmd(c, m):
@@ -366,38 +291,6 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
         except Exception as e:
             await m.edit_text(f"❌ خطأ: {e}")
 
-    @user_app.on_message(filters.me & filters.command(["ايدي"], prefixes="."))
-    async def my_id_cmd(c, m):
-        me = await c.get_me()
-        await m.edit_text(f"❄ **معلومات حسابك:**\n• الأيدي: `{me.id}`\n• المعرف: `@{me.username}`\n• المطور: `@{ADMIN_USERNAME}`")
-
-    @user_app.on_message(filters.me & filters.command(["تنضيف", "تنظيف"], prefixes="."))
-    async def purge_msgs(c, m):
-        args = m.text.split()
-        count = int(args[1]) if len(args) > 1 and args[1].isdigit() else 5
-        deleted = 0
-        async for msg in c.get_chat_history(m.chat.id, limit=count+1):
-            if msg.from_user and msg.from_user.is_self and msg.id != m.id:
-                try:
-                    await msg.delete()
-                    deleted += 1
-                except: pass
-        await m.edit_text(f"🔥 **تم حذف ({deleted}) من رسائلك بنجاح!**")
-        await asyncio.sleep(2)
-        await m.delete()
-
-    @user_app.on_message(filters.me & filters.text)
-    async def fonts_handler(c, m):
-        txt = m.text.strip()
-        if txt in FONTS_MAP:
-            current_font_style[0] = txt
-            now = datetime.now(BAGHDAD_TZ).strftime("%I:%M")
-            clock_text = format_time_with_font(now, txt)
-            try:
-                await user_app.update_profile(last_name=f"{clock_text}")
-                await m.edit_text(f"🟢 **تم تغيير الخط وضبط الساعة: ({clock_text})**")
-            except: pass
-
     try:
         await user_app.start()
         asyncio.create_task(update_clock())
@@ -407,13 +300,12 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     except Exception as e:
         print(f"❌ فشل تشغيل سورس المستخدم: {e}")
 
-
 # ==================== بوت التنصيب (رئيسي) ====================
 
 @bot_app.on_message(filters.command("code") & filters.private)
 async def create_subscription_code(client, message):
     if message.from_user.id != ADMIN_ID:
-        return await message.reply_text("⛔️ خاص بالمطور فقط!")
+        return
     args = message.text.split()
     if len(args) < 3:
         return await message.reply_text("⚠️ `/code [الكود] [عدد الأيام]`")
@@ -501,7 +393,12 @@ async def handle_user_input(client, message):
     elif step == "waiting_phone":
         phone_number = message.text.strip()
         session_name = f"rubaie_session_{user_id}"
-        user_client = Client(session_name, api_id=API_ID, api_hash=API_HASH)
+        user_client = Client(
+            session_name,
+            api_id=API_ID,
+            api_hash=API_HASH,
+            proxy=PROXY_CONFIG
+        )
         await user_client.connect()
         try:
             sent_code = await user_client.send_code(phone_number)
