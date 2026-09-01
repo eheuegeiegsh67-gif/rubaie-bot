@@ -9,7 +9,7 @@ from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotPart
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==================== الإعدادات الأساسية ====================
-BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
+BOT_TOKEN = "8812362880:AAEkXtnj03KM27QiP9kADZyQHKASe9WEMcY"
 API_ID = 38183563
 API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 
@@ -63,10 +63,6 @@ temp_users = {}
 user_active_sources = {}  
 muted_users = set()       
 original_profile = {}     
-sleep_mode = [False]      
-warn_counts = {}          
-last_warn_msgs = {}   
-stop_posting_flags = {}   
 
 FONTS_MAP = {
     "1": {"0":"٠", "1":"١", "2":"٢", "3":"٣", "4":"٤", "5":"٥", "6":"٦", "7":"٧", "8":"٨", "9":"٩"},
@@ -150,7 +146,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     async def global_mute_handler(c, m):
         if m.from_user and m.from_user.id in muted_users:
             try:
-                await m.delete()  # حذف رسالة الشخص المكتوم فوراً حتى لو كنت عضواً فقط
+                await m.delete()
             except Exception as e:
                 print(f"خطأ في حذف رسالة الشخص المكتوم: {e}")
             m.stop_propagation()
@@ -465,7 +461,7 @@ async def restore_saved_sessions():
     save_database(db)
 
 async def main():
-    print(f"🚀 [سورس الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
+    print(f"🚀  يعملس الربيعي للمطور @{ADMIN_USERNAME}]ل الآن...")
     await restore_saved_sessions()
     await bot_app.start()
     await idle()
