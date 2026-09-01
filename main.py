@@ -3,13 +3,13 @@ import os
 import json
 import time
 from datetime import datetime, timezone, timedelta
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.enums import ChatMemberStatus, ChatType
 from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserNotParticipant
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==================== الإعدادات الأساسية ====================
-BOT_TOKEN = "8938082118:AAHWa070-4EKOTg5ukM50smhfyfnQ9V1OZw"
+BOT_TOKEN = "8648735860:AAHIXbAq8by99wYWb1ZpkkWtDguX-lghBkA"
 API_ID = 38183563
 API_HASH = "7d3d3b9379c6840a72c983865c8d927d"
 
@@ -140,7 +140,7 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
                 break
             await asyncio.sleep(60)
 
-    # ==================== القائمة الرئيسية (بصمتك الخاصة والكليشة المطورة) ====================
+    # ==================== القائمة الرئيسية ====================
     @user_app.on_message(filters.me & filters.command(["الاوامر", "الأوامر", "م"], prefixes="."))
     async def main_menu(c, m):
         await m.edit_text(
@@ -180,7 +180,6 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
             f"└─────── **@{ADMIN_USERNAME}** ───────┘"
         )
 
-    # أقسام الأوامر الفرعية للتوضيح
     @user_app.on_message(filters.me & filters.command(["م1"], prefixes="."))
     async def menu_1(c, m):
         await m.edit_text("⭐ **أوامر الخاص (.م1):**\n• `.اسم وقتي` لتشغيل الساعة حسب توقيت بغداد.\n• إدارة الرسائل الخاصة والكتم.")
@@ -205,68 +204,48 @@ async def start_user_source(client_session_name, expire_timestamp, user_tg_id):
     async def menu_29(c, m):
         await m.edit_text("🌙 **أوامر التحذيرات (.م29):**\n• `.نوم` لتفعيل الرد التلقائي والتحذيرات (5 رسائل ثم كتم).\n• `.كاعد` لإطفاء وضع النوم.")
 
-    # ==================== تنفيذ أمر الزخرفة بـ 8 أنواع ====================
     @user_app.on_message(filters.me & filters.command(["زخرفة", "زخرفه"], prefixes="."))
     async def decorate_command(c, m):
         args = m.text.split(maxsplit=2)
         if len(args) < 3:
             await m.edit_text("⚠️ **استخدام خاطئ!**\nاكتب هكذا: `.زخرفة [1-8] [النص المراد زخرفته]`")
             return
-        
         style_num = args[1]
         text_to_decorate = args[2]
-        
         if style_num not in [str(i) for i in range(1, 9)]:
             await m.edit_text("⚠️ **اختر رقماً للزخرفة من 1 إلى 8 فقط!**")
             return
-            
         result = decorate_text(text_to_decorate, style_num)
         await m.edit_text(f"✨ **النص بعد الزخرفة (نوع {style_num}):**\n\n`{result}`")
 
-    # ==================== أمر صنع الكروبات التلقائي (بالشكل المطلوب تماماً) ====================
     @user_app.on_message(filters.me & filters.command(["create_groups", "صنع_كروبات"], prefixes="."))
     async def create_auto_groups_cmd(c, m):
-        total_groups = 50  # العدد الافتراضي
+        total_groups = 50
         args = m.text.split()
         if len(args) > 1 and args[1].isdigit():
             total_groups = int(args[1])
-
         await m.edit_text(f"⌔︙جاري بدء صنع {total_groups} كروب...")
-        
         for i in range(1, total_groups + 1):
             try:
                 current_date_str = datetime.now(BAGHDAD_TZ).strftime("%Y-%m-%d")
                 group_title = f"Al-Rubaie Group {current_date_str} #{i}"
                 group_about = f"source by @{ADMIN_USERNAME}"
-                
-                created_chat = await c.create_supergroup(
-                    title=group_title,
-                    description=group_about
-                )
+                created_chat = await c.create_supergroup(title=group_title, description=group_about)
                 chat_id = created_chat.id
-                
                 message_text = "الذكريات تجمعنا يوما ما"
                 for _ in range(7):
                     await c.send_message(chat_id, message_text)
                     await asyncio.sleep(0.4)
-                    
                 invite_link = await c.export_chat_invite_link(chat_id)
                 await c.leave_chat(chat_id)
-                
-                result_text = (
-                    f"⌔︙تم صنع كروب رقم {i}\n"
-                    f"🌐︙الرابط : {invite_link}"
-                )
+                result_text = f"⌔︙تم صنع كروب رقم {i}\n🌐︙الرابط : {invite_link}"
                 await c.send_message("me", result_text)
                 await asyncio.sleep(2)
-                
             except Exception as e:
                 await c.send_message("me", f"❌ حدث خطأ في الكروب رقم {i}: {str(e)}")
                 await asyncio.sleep(3)
-
         await c.send_message("me", "✅ **تم الانتهاء من إنشاء جميع الكروبات وإرسال الروابط بنجاح!**")
 
-    # باقي الأوامر الوظيفية (النشر، الكتم، النوم، الانتحال، التنظيف)
     @user_app.on_message(filters.me & filters.command(["نشر", "توجيه"], prefixes="."))
     async def auto_post_cmd(c, m):
         if not m.reply_to_message:
@@ -588,12 +567,11 @@ async def restore_saved_sessions():
     db["user_sessions"] = user_sessions
     save_database(db)
 
-async def __main():
-    print(f"🚀 [سورس سورس المتكامل للمطور @{ADMIN_USERNAME}] يعمل ")
+async def main():
+    print(f"🚀 [سورس الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
     await restore_saved_sessions()
     await bot_app.start()
-    from pyrogram import idle
     await idle()
 
 if __name__ == "__main__":
-    asyncio.run(__main())
+    asyncio.run(main())
