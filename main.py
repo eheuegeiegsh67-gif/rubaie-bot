@@ -414,10 +414,14 @@ async def __main():
     # تشغيل خادم الويب في خلفية منفصلة لمنع إيقاف الحاوية على Railway
     threading.Thread(target=run_web_server, daemon=True).start()
     
-    print(f"🚀 [ الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
+    print(f"🚀 [سورس الربيعي المتكامل للمطور @{ADMIN_USERNAME}] يعمل الآن...")
     await restore_saved_sessions()
+    
+    # تشغيل بوت التنصيب الرئيسي والانتظار بداخل حلقة الأحداث
     await bot_app.start()
+    print("✅ تم تشغيل بوت التنصيب الرئيسي بنجاح وبدأ استقبال الرسائل!")
     await idle()
+    await bot_app.stop()
 
 if __name__ == "__main__":
     asyncio.run(__main())
